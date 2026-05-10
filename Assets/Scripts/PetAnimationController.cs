@@ -27,6 +27,7 @@ public class PetAnimationController : MonoBehaviour
     private const int ANIM_CRYING  = 4;
     private const int ANIM_CRITICAL = 5;
     private const int ANIM_DEAD    = 6;
+    private const int ANIM_BATH    = 7;
 
     [Header("Duración de animaciones de acción (seg)")]
     [SerializeField] private float eatDuration   = 1.5f;
@@ -84,8 +85,15 @@ public class PetAnimationController : MonoBehaviour
 
     public void PlayBathAnimation()
     {
-        StartAction(ANIM_SLEEP, bathDuration);  // reutiliza anim o crea "Bath"
+        Debug.Log($"[PAC] SetState {ANIM_BATH} para bath");
+        StartAction(ANIM_BATH, bathDuration);
         TamagotchiApiManager.Instance.RealizarAccion("bañar");
+    }
+
+    public void PlaySleepAnimation()
+    {
+        Debug.Log($"[PAC] SetState {ANIM_SLEEP} para sleep");
+        StartAction(ANIM_SLEEP, 2.0f);
     }
 
     private void StartAction(int animState, float duration)
@@ -114,6 +122,7 @@ public class PetAnimationController : MonoBehaviour
             _                          => ANIM_IDLE
         };
 
+        Debug.Log($"[PAC] HandleStateChanged → {state} → anim {anim}");
         SetAnimState(anim);
     }
 
