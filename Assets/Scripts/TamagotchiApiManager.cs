@@ -27,6 +27,15 @@ public class TamagotchiApiManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    private void Start()
+    {
+        if (petNeeds == null)
+        {
+            petNeeds = FindObjectOfType<PetNeeds>();
+            Debug.Log("[API] petNeeds auto-resuelto: " + (petNeeds != null));
+        }
+    }
+
     // ─────────────────────────────────────────────────────────
     //  CONFIGURACIÓN
     // ─────────────────────────────────────────────────────────

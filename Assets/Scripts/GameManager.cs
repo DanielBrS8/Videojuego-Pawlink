@@ -24,17 +24,29 @@ public class GameManager : MonoBehaviour
 
     private void Awake()
     {
-        Debug.Log("[GM] === Awake() RUNNING ===");
-        Debug.Log("[GM] btnAlimentar null? " + (btnAlimentar == null));
-        Debug.Log("[GM] btnJugar null? "     + (btnJugar == null));
-        Debug.Log("[GM] btnBanar null? "     + (btnBanar == null));
-        Debug.Log("[GM] btnDormir null? "    + (btnDormir == null));
-        Debug.Log("[GM] btnTienda null? "    + (btnTienda == null));
-        Debug.Log("[GM] btnLogros null? "    + (btnLogros == null));
-        Debug.Log("[GM] btnHub null? "       + (btnHub == null));
-        Debug.Log("[GM] petAnimController null? " + (petAnimController == null));
-        Debug.Log("[GM] petNeeds null? "     + (petNeeds == null));
+        // ── Auto-resolución de referencias (fallback si el Inspector no las tiene) ──
+        if (petNeeds == null)
+            petNeeds = FindObjectOfType<PetNeeds>();
+        if (petAnimController == null)
+            petAnimController = FindObjectOfType<PetAnimationController>();
 
+        if (btnAlimentar == null) btnAlimentar = GameObject.Find("Btn_Alimentar")?.GetComponent<Button>();
+        if (btnJugar     == null) btnJugar     = GameObject.Find("Btn_Jugar")?.GetComponent<Button>();
+        if (btnBanar     == null) btnBanar     = GameObject.Find("Btn_Banar")?.GetComponent<Button>();
+        if (btnDormir    == null) btnDormir    = GameObject.Find("Btn_Dormir")?.GetComponent<Button>();
+        if (btnTienda    == null) btnTienda    = GameObject.Find("Btn_Tienda")?.GetComponent<Button>();
+        if (btnLogros    == null) btnLogros    = GameObject.Find("Btn_Logros")?.GetComponent<Button>();
+        if (btnHub       == null) btnHub       = GameObject.Find("BtnHub")?.GetComponent<Button>();
+
+        if (nameText  == null) nameText  = GameObject.Find("PetNameText")?.GetComponent<TMP_Text>();
+        if (levelText == null) levelText = GameObject.Find("SpeciesText")?.GetComponent<TMP_Text>();
+        if (coinsText == null) coinsText = GameObject.Find("CoinsText")?.GetComponent<TMP_Text>();
+
+        Debug.Log($"[GM] Awake resuelto — petNeeds:{petNeeds != null} petAnim:{petAnimController != null}" +
+                  $" btnAlimentar:{btnAlimentar != null} btnJugar:{btnJugar != null}" +
+                  $" btnBanar:{btnBanar != null} btnDormir:{btnDormir != null}");
+
+        // ── Cablear botones ──
         if (btnAlimentar != null) btnAlimentar.onClick.AddListener(OnAlimentarClicked);
         if (btnJugar     != null) btnJugar    .onClick.AddListener(OnJugarClicked);
         if (btnBanar     != null) btnBanar    .onClick.AddListener(OnBanarClicked);
@@ -42,61 +54,11 @@ public class GameManager : MonoBehaviour
         if (btnTienda    != null) btnTienda   .onClick.AddListener(OnTiendaClicked);
         if (btnLogros    != null) btnLogros   .onClick.AddListener(OnLogrosClicked);
         if (btnHub       != null) btnHub      .onClick.AddListener(OnHubClicked);
-        Debug.Log("[GM] === Awake() DONE ===");
-    }
-
-    // Métodos nombrados (más fáciles de detectar en el profiler / debugger que lambdas)
-    private void OnAlimentarClicked()
-    {
-        Debug.Log("[GM] CLICK btnAlimentar");
-        if (petAnimController != null) petAnimController.PlayEatAnimation();
-    }
-
-    private void OnJugarClicked()
-    {
-        Debug.Log("[GM] CLICK btnJugar");
-        if (petAnimController != null) petAnimController.PlayPlayAnimation();
-    }
-
-    private void OnBanarClicked()
-    {
-        Debug.Log("[GM] CLICK btnBanar");
-        if (petAnimController != null) petAnimController.PlayBathAnimation();
-    }
-
-    private void OnDormirClicked()
-    {
-        Debug.Log("[GM] CLICK btnDormir");
-        if (petAnimController != null) petAnimController.PlaySleepAnimation();
-        if (petNeeds != null) petNeeds.Descansar();
-    }
-
-    private void OnTiendaClicked()
-    {
-        Debug.Log("[GM] CLICK btnTienda → TiendaScene");
-        SceneManager.LoadScene("TiendaScene");
-    }
-
-    private void OnLogrosClicked()
-    {
-        Debug.Log("[GM] CLICK btnLogros → LogrosScene");
-        SceneManager.LoadScene("LogrosScene");
-    }
-
-    private void OnHubClicked()
-    {
-        Debug.Log("[GM] CLICK btnHub → HubScene");
-        SceneManager.LoadScene("HubScene");
     }
 
     private void OnEnable()
     {
-        Debug.Log("[GM] === OnEnable() RUNNING ===");
-        if (petNeeds == null)
-        {
-            Debug.LogError("[GM] petNeeds NULL en OnEnable — referencia serializada perdida");
-            return;
-        }
+        if (petNeeds == null) return;
         petNeeds.OnDataLoaded     += RefreshTopBar;
         petNeeds.OnXpChanged      += OnXpChanged;
         petNeeds.OnMonedasChanged += OnMonedasChanged;
@@ -112,10 +74,21 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        Debug.Log("[GM] === Start() RUNNING ===");
+        // OnEnable corre antes de Start — si petNeeds se resolvió en Awake pero
+        // OnEnable ya había pasado con null, nos re-suscribimos aquí de forma segura.
+        if (petNeeds != null)
+        {
+            petNeeds.OnDataLoaded     -= RefreshTopBar;
+            petNeeds.OnXpChanged      -= OnXpChanged;
+            petNeeds.OnMonedasChanged -= OnMonedasChanged;
+            petNeeds.OnDataLoaded     += RefreshTopBar;
+            petNeeds.OnXpChanged      += OnXpChanged;
+            petNeeds.OnMonedasChanged += OnMonedasChanged;
+        }
+
         if (TamagotchiApiManager.Instance == null)
         {
-            Debug.LogError("[GM] TamagotchiApiManager.Instance NULL — singleton no inicializado");
+            Debug.LogError("[GM] TamagotchiApiManager.Instance NULL");
             return;
         }
         if (petNeeds == null)
@@ -129,6 +102,39 @@ public class GameManager : MonoBehaviour
             err => Debug.LogError("[GM] Error cargando mascota: " + err)
         );
     }
+
+    // ── Handlers de botones ─────────────────────────────────────────────────
+
+    private void OnAlimentarClicked()
+    {
+        Debug.Log($"[GM] CLICK Alimentar — petAnim:{petAnimController != null} petNeeds:{petNeeds != null}");
+        petAnimController?.PlayEatAnimation();
+    }
+
+    private void OnJugarClicked()
+    {
+        Debug.Log("[GM] CLICK Jugar");
+        petAnimController?.PlayPlayAnimation();
+    }
+
+    private void OnBanarClicked()
+    {
+        Debug.Log("[GM] CLICK Banar");
+        petAnimController?.PlayBathAnimation();
+    }
+
+    private void OnDormirClicked()
+    {
+        Debug.Log("[GM] CLICK Dormir");
+        petAnimController?.PlaySleepAnimation();
+        petNeeds?.Descansar();
+    }
+
+    private void OnTiendaClicked() => SceneManager.LoadScene("TiendaScene");
+    private void OnLogrosClicked() => SceneManager.LoadScene("LogrosScene");
+    private void OnHubClicked()    => SceneManager.LoadScene("HubScene");
+
+    // ── UI ──────────────────────────────────────────────────────────────────
 
     private void RefreshTopBar()
     {

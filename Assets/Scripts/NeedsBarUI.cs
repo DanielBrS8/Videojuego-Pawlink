@@ -3,11 +3,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-/// <summary>
-/// Barra de progreso basada en anchorMax.x — no requiere sprite ni Image.Type.Filled.
-/// El BarFill debe tener: anchorMin{0,0.1}, anchorMax{0,0.9}, pivot{0,0.5}, sizeDelta{0,0}.
-/// El fill se controla desplazando anchorMax.x de 0 a 1.
-/// </summary>
 [RequireComponent(typeof(Image))]
 public class NeedsBarUI : MonoBehaviour
 {
@@ -15,45 +10,40 @@ public class NeedsBarUI : MonoBehaviour
 
     [SerializeField] private StatType statType;
     [SerializeField] private PetNeeds petNeeds;
-    [SerializeField] private float    lerpSpeed = 6f;
-
-    [Header("Texto opcional (auto-encuentra hermano llamado 'ValueText' si null)")]
+    [SerializeField] private float lerpSpeed = 6f;
     [SerializeField] private TMP_Text valueText;
 
-    [Header("Colores")]
-    [SerializeField] private Color colorFull     = new Color(0.45f, 0.85f, 0.45f);
-    [SerializeField] private Color colorMid      = new Color(0.95f, 0.78f, 0.35f);
-    [SerializeField] private Color colorCritical = new Color(0.90f, 0.35f, 0.35f);
-    [SerializeField] [Range(0f, 1f)] private float criticalLevel = 0.20f;
-    [SerializeField] [Range(0f, 1f)] private float midLevel      = 0.50f;
+    [SerializeField] private Color colorFull     = new Color(0.361f, 0.722f, 0.361f);
+    [SerializeField] private Color colorMid      = new Color(0.941f, 0.678f, 0.306f);
+    [SerializeField] private Color colorCritical = new Color(0.851f, 0.325f, 0.310f);
+    [SerializeField] [Range(0f,1f)] private float criticalLevel = 0.20f;
+    [SerializeField] [Range(0f,1f)] private float midLevel      = 0.50f;
 
-    private Image         _img;
-    private RectTransform _rt;
-    private float         _current;
-    private float         _target;
+    private Image _img;
+    private float _current;
+    private float _target;
     private Action<int,int> _xpHandler;
 
     private void Awake()
     {
         _img = GetComponent<Image>();
-        _rt  = GetComponent<RectTransform>();
-        // Configurar anclas para fill por anchorMax.x
-        _rt.anchorMin = new Vector2(0f, 0.05f);
-        _rt.anchorMax = new Vector2(1f, 0.95f);
-        _rt.sizeDelta = Vector2.zero;
-        _rt.pivot     = new Vector2(0f, 0.5f);
+        _img.type = Image.Type.Filled;
+        _img.fillMethod = Image.FillMethod.Horizontal;
+        _img.fillOrigin = 0;
 
-        // Auto-resolución del ValueText: busca un hermano llamado "ValueText"
-        if (valueText == null && transform.parent != null)
+        if (petNeeds == null)
+            petNeeds = FindObjectOfType<PetNeeds>();
+
+        if (valueText == null && transform.parent != null && transform.parent.parent != null)
         {
-            var sibling = transform.parent.parent != null ? transform.parent.parent.Find("ValueText") : null;
-            if (sibling != null) valueText = sibling.GetComponent<TMP_Text>();
+            var vt = transform.parent.parent.Find("ValueText");
+            if (vt != null) valueText = vt.GetComponent<TMP_Text>();
         }
     }
 
     private void OnEnable()
     {
-        if (petNeeds == null) { Debug.LogWarning($"[NeedsBarUI] {name} — petNeeds es NULL"); return; }
+        if (petNeeds == null) { Debug.LogError($"[NeedsBarUI] {name} petNeeds NULL"); return; }
 
         switch (statType)
         {
@@ -67,12 +57,11 @@ public class NeedsBarUI : MonoBehaviour
                 break;
         }
 
-        float init = GetCurrent();
-        _target  = init;
-        _current = init;
-        ApplyFill(init);
+        float init = GetNorm();
+        _target = _current = init;
+        _img.fillAmount = init;
         UpdateColor(init);
-        UpdateValueText(init);
+        UpdateText(init);
     }
 
     private void OnDisable()
@@ -92,41 +81,28 @@ public class NeedsBarUI : MonoBehaviour
 
     private void Update()
     {
-        _current = Mathf.Lerp(_current, _target, lerpSpeed * Time.deltaTime);
-        ApplyFill(_current);
+        if (Mathf.Abs(_current - _target) > 0.001f)
+        {
+            _current = Mathf.Lerp(_current, _target, lerpSpeed * Time.deltaTime);
+            _img.fillAmount = _current;
+        }
     }
 
-    private void ApplyFill(float v)
-    {
-        Vector2 max = _rt.anchorMax;
-        max.x = Mathf.Clamp01(v);
-        _rt.anchorMax = max;
-    }
-
-    private void SetTarget(float v)
-    {
-        _target = v;
-        UpdateColor(v);
-        UpdateValueText(v);
-    }
+    private void SetTarget(float v) { _target = v; UpdateColor(v); UpdateText(v); }
 
     private void UpdateColor(float v)
     {
-        _img.color = v <= criticalLevel ? colorCritical
-                   : v <= midLevel      ? colorMid
-                   : colorFull;
+        _img.color = v <= criticalLevel ? colorCritical : v <= midLevel ? colorMid : colorFull;
+        if (valueText != null) valueText.color = _img.color;
     }
 
-    private void UpdateValueText(float norm)
+    private void UpdateText(float norm)
     {
         if (valueText == null) return;
-        if (statType == StatType.XP)
-            valueText.text = Mathf.RoundToInt(norm * 100f) + "%";
-        else
-            valueText.text = Mathf.RoundToInt(norm * 100f).ToString();
+        valueText.text = Mathf.RoundToInt(norm * 100f).ToString();
     }
 
-    private float GetCurrent() => statType switch
+    private float GetNorm() => statType switch
     {
         StatType.Hambre    => petNeeds.HambreNorm,
         StatType.Felicidad => petNeeds.FelicidadNorm,

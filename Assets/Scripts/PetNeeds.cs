@@ -225,6 +225,7 @@ public class PetNeeds : MonoBehaviour
 
     public void ApplyActionResult(string tipo, int puntos)
     {
+        Debug.Log($"[PetNeeds] ApplyActionResult llamado: {tipo}");
         _isSyncing = false;
 
         switch (tipo)
