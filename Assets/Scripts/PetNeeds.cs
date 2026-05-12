@@ -32,10 +32,10 @@ public class PetNeeds : MonoBehaviour
     // ─────────────────────────────────────────────────────────
 
     [Header("Decaimiento local (unidades / segundo)")]
-    [SerializeField] private float hambreDecay    = 1.2f;
-    [SerializeField] private float felicidadDecay = 0.6f;
-    [SerializeField] private float energiaDecay   = 0.8f;
-    [SerializeField] private float higieneDecay   = 0.4f;
+    [SerializeField] private float hambreDecay    = 8f;
+    [SerializeField] private float felicidadDecay = 5f;
+    [SerializeField] private float energiaDecay   = 6f;
+    [SerializeField] private float higieneDecay   = 3f;
 
     [Header("Umbral crítico")]
     [Range(0, 40)] [SerializeField] private float criticalThreshold = 20f;
@@ -47,10 +47,10 @@ public class PetNeeds : MonoBehaviour
     //  PROPIEDADES PÚBLICAS
     // ─────────────────────────────────────────────────────────
 
-    public float Hambre    { get; private set; }
-    public float Felicidad { get; private set; }
-    public float Energia   { get; private set; }
-    public float Higiene   { get; private set; }
+    public float Hambre    { get; private set; } = 100f;
+    public float Felicidad { get; private set; } = 100f;
+    public float Energia   { get; private set; } = 100f;
+    public float Higiene   { get; private set; } = 100f;
 
     public int   Nivel       { get; private set; }
     public int   Experiencia { get; private set; }
@@ -89,7 +89,7 @@ public class PetNeeds : MonoBehaviour
     //  ESTADO INTERNO
     // ─────────────────────────────────────────────────────────
 
-    private bool _isDataLoaded = false;
+    private bool _isDataLoaded = true;
     private bool _isSyncing    = false;
 
     // ─────────────────────────────────────────────────────────
@@ -229,6 +229,38 @@ public class PetNeeds : MonoBehaviour
     public void BeginSync() => _isSyncing = true;
     public void AbortSync() => _isSyncing = false;
 
+    // Debe coincidir con EFECTO_ACCION en AccionService.java del backend.
+    private const float EfectoAccion = 40f;
+
+    public void ApplyActionResult(string tipo, int puntos)
+    {
+        Debug.Log($"[PetNeeds] ApplyActionResult llamado: {tipo}");
+        _isSyncing = false;
+
+        switch (tipo)
+        {
+            case "alimentar": SetHambre(Hambre       + EfectoAccion); break;
+            case "jugar":     SetFelicidad(Felicidad + EfectoAccion); break;
+            case "bañar":     SetHigiene(Higiene     + EfectoAccion); break;
+        }
+
+        if (puntos > 0)
+        {
+            Experiencia += puntos;
+            if (Experiencia >= xpPerLevel)
+            {
+                Nivel++;
+                Experiencia -= xpPerLevel;
+            }
+            OnXpChanged?.Invoke(Experiencia, Nivel);
+
+            Monedas += puntos;
+            OnMonedasChanged?.Invoke(Monedas);
+        }
+
+        EvaluateState();
+    }
+
     /// <summary>Optimistic UI: aplica efectos de item antes de confirmación del servidor.</summary>
     public void ApplyItemEffects(ItemTienda item)
     {
@@ -236,6 +268,12 @@ public class PetNeeds : MonoBehaviour
         SetFelicidad(Felicidad + item.efecto_felicidad);
         SetEnergia(Energia     + item.efecto_energia);
         SetHigiene(Higiene     + item.efecto_higiene);
+        EvaluateState();
+    }
+
+    public void Descansar()
+    {
+        SetEnergia(Mathf.Min(100f, Energia + 40f));
         EvaluateState();
     }
 

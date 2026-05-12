@@ -1,39 +1,49 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
-/// <summary>
-/// Barra visual para una de las 4 stats: Hambre, Felicidad, Energía, Higiene.
-/// Requiere Image con Type=Filled, FillMethod=Horizontal.
-/// </summary>
 [RequireComponent(typeof(Image))]
 public class NeedsBarUI : MonoBehaviour
 {
     public enum StatType { Hambre, Felicidad, Energia, Higiene, XP }
 
-    [SerializeField] private StatType   statType;
-    [SerializeField] private PetNeeds   petNeeds;
-    [SerializeField] private float      lerpSpeed = 6f;
+    [SerializeField] private StatType statType;
+    [SerializeField] private PetNeeds petNeeds;
+    [SerializeField] private float lerpSpeed = 6f;
+    [SerializeField] private TMP_Text valueText;
 
-    [Header("Colores")]
-    [SerializeField] private Color colorFull     = new Color(0.45f, 0.85f, 0.45f);
-    [SerializeField] private Color colorMid      = new Color(0.95f, 0.78f, 0.35f);
-    [SerializeField] private Color colorCritical = new Color(0.90f, 0.35f, 0.35f);
-    [SerializeField] [Range(0f, 1f)] private float criticalLevel = 0.20f;
-    [SerializeField] [Range(0f, 1f)] private float midLevel      = 0.50f;
+    [SerializeField] private Color colorFull     = new Color(0.361f, 0.722f, 0.361f);
+    [SerializeField] private Color colorMid      = new Color(0.941f, 0.678f, 0.306f);
+    [SerializeField] private Color colorCritical = new Color(0.851f, 0.325f, 0.310f);
+    [SerializeField] [Range(0f,1f)] private float criticalLevel = 0.20f;
+    [SerializeField] [Range(0f,1f)] private float midLevel      = 0.50f;
 
     private Image _img;
+    private float _current;
     private float _target;
+    private Action<int,int> _xpHandler;
 
     private void Awake()
     {
         _img = GetComponent<Image>();
-        _img.type       = Image.Type.Filled;
+        _img.type = Image.Type.Filled;
         _img.fillMethod = Image.FillMethod.Horizontal;
+        _img.fillOrigin = 0;
+
+        if (petNeeds == null)
+            petNeeds = FindObjectOfType<PetNeeds>();
+
+        if (valueText == null && transform.parent != null && transform.parent.parent != null)
+        {
+            var vt = transform.parent.parent.Find("ValueText");
+            if (vt != null) valueText = vt.GetComponent<TMP_Text>();
+        }
     }
 
     private void OnEnable()
     {
-        if (petNeeds == null) return;
+        if (petNeeds == null) { Debug.LogError($"[NeedsBarUI] {name} petNeeds NULL"); return; }
 
         switch (statType)
         {
@@ -41,14 +51,17 @@ public class NeedsBarUI : MonoBehaviour
             case StatType.Felicidad: petNeeds.OnFelicidadChanged += SetTarget; break;
             case StatType.Energia:   petNeeds.OnEnergiaChanged   += SetTarget; break;
             case StatType.Higiene:   petNeeds.OnHigieneChanged   += SetTarget; break;
-            case StatType.XP:        petNeeds.OnXpChanged        += (xp, _) => SetTarget(petNeeds.XpNorm); break;
+            case StatType.XP:
+                _xpHandler = (xp, _) => SetTarget(petNeeds.XpNorm);
+                petNeeds.OnXpChanged += _xpHandler;
+                break;
         }
 
-        // Valor inicial
-        float init = GetCurrent();
-        _target = init;
+        float init = GetNorm();
+        _target = _current = init;
         _img.fillAmount = init;
         UpdateColor(init);
+        UpdateText(init);
     }
 
     private void OnDisable()
@@ -60,29 +73,37 @@ public class NeedsBarUI : MonoBehaviour
             case StatType.Felicidad: petNeeds.OnFelicidadChanged -= SetTarget; break;
             case StatType.Energia:   petNeeds.OnEnergiaChanged   -= SetTarget; break;
             case StatType.Higiene:   petNeeds.OnHigieneChanged   -= SetTarget; break;
+            case StatType.XP:
+                if (_xpHandler != null) petNeeds.OnXpChanged -= _xpHandler;
+                break;
         }
     }
     
 
     private void Update()
     {
-        _img.fillAmount = Mathf.Lerp(_img.fillAmount, _target, lerpSpeed * Time.deltaTime);
+        if (Mathf.Abs(_current - _target) > 0.001f)
+        {
+            _current = Mathf.Lerp(_current, _target, lerpSpeed * Time.deltaTime);
+            _img.fillAmount = _current;
+        }
     }
 
-    private void SetTarget(float v)
-    {
-        _target = v;
-        UpdateColor(v);
-    }
+    private void SetTarget(float v) { _target = v; UpdateColor(v); UpdateText(v); }
 
     private void UpdateColor(float v)
     {
-        _img.color = v <= criticalLevel ? colorCritical
-                   : v <= midLevel      ? colorMid
-                   : colorFull;
+        _img.color = v <= criticalLevel ? colorCritical : v <= midLevel ? colorMid : colorFull;
+        if (valueText != null) valueText.color = _img.color;
     }
 
-    private float GetCurrent() => statType switch
+    private void UpdateText(float norm)
+    {
+        if (valueText == null) return;
+        valueText.text = Mathf.RoundToInt(norm * 100f).ToString();
+    }
+
+    private float GetNorm() => statType switch
     {
         StatType.Hambre    => petNeeds.HambreNorm,
         StatType.Felicidad => petNeeds.FelicidadNorm,

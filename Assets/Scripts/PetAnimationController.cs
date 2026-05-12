@@ -1,19 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Traduce PetNeeds.PetState → parámetros del Animator.
-///
-/// Parámetros del Animator Controller:
-///   "State" (Int):
-///     0 = Idle (Normal)
-///     1 = Eat  (alimentar)
-///     2 = Walk/Play (jugar)  
-///     3 = Sleep/Tired
-///     4 = Crying (Sad/Hungry/Dirty)
-///     5 = Critical (dos o más stats bajas)
-///     6 = Dead
-///   "IsActing" (Bool): bloquea interacciones durante animación de acción
-/// </summary>
 [RequireComponent(typeof(Animator))]
 public class PetAnimationController : MonoBehaviour
 {
@@ -27,6 +13,7 @@ public class PetAnimationController : MonoBehaviour
     private const int ANIM_CRYING  = 4;
     private const int ANIM_CRITICAL = 5;
     private const int ANIM_DEAD    = 6;
+    private const int ANIM_BATH    = 7;
 
     [Header("Duración de animaciones de acción (seg)")]
     [SerializeField] private float eatDuration   = 1.5f;
@@ -72,14 +59,18 @@ public class PetAnimationController : MonoBehaviour
 
     public void PlayEatAnimation()
     {
+<<<<<<< HEAD
         if (!petNeeds.TieneMonedas(PetNeeds.COSTE_ALIMENTAR))
         {
             Debug.Log("Sin monedas");
             return;
         }
         petNeeds.GastarMonedas(PetNeeds.COSTE_ALIMENTAR);
+=======
+        Debug.Log("[PAC] PlayEatAnimation() llamado");
+>>>>>>> e0c651cabc38e6ede1a7f82693974f0d78ae4d2e
         StartAction(ANIM_EAT, eatDuration);
-        TamagotchiApiManager.Instance.RealizarAccion("alimentar");
+        CallApi("alimentar");
     }
 
     public void PlayPlayAnimation()
@@ -91,11 +82,12 @@ public class PetAnimationController : MonoBehaviour
         }
         petNeeds.GastarMonedas(PetNeeds.COSTE_JUGAR);
         StartAction(ANIM_PLAY, playDuration);
-        TamagotchiApiManager.Instance.RealizarAccion("jugar");
+        CallApi("jugar");
     }
 
     public void PlayBathAnimation()
     {
+<<<<<<< HEAD
         if (!petNeeds.TieneMonedas(PetNeeds.COSTE_BANAR))
         {
             Debug.Log("Sin monedas");
@@ -104,11 +96,46 @@ public class PetAnimationController : MonoBehaviour
         petNeeds.GastarMonedas(PetNeeds.COSTE_BANAR);
         StartAction(ANIM_SLEEP, bathDuration);  // reutiliza anim o crea "Bath"
         TamagotchiApiManager.Instance.RealizarAccion("bañar");
+=======
+        Debug.Log("[PAC] PlayBathAnimation() llamado — IsDead:" + (petNeeds != null ? petNeeds.IsDead.ToString() : "petNeeds null"));
+        StartAction(ANIM_BATH, bathDuration);
+        Debug.Log("[PAC] SetState " + ANIM_BATH + " (Bath) — _actionTimer:" + _actionTimer);
+        CallApi("bañar");
+    }
+
+    public void PlaySleepAnimation()
+    {
+        StartAction(ANIM_SLEEP, 2.0f);
+        // Dormir es local — petNeeds.Descansar() se llama desde GameManager
+    }
+
+    private void CallApi(string tipo)
+    {
+        Debug.Log("[PAC] RealizarAccion llamado: " + tipo);
+
+        if (TamagotchiApiManager.Instance == null)
+        {
+            Debug.LogError("[PAC] TamagotchiApiManager.Instance es NULL");
+            return;
+        }
+
+        TamagotchiApiManager.Instance.RealizarAccion(
+            tipo,
+            onSuccess: response =>
+            {
+                Debug.Log("[PAC] ApplyActionResult recibido: " + tipo + " puntos=" + response.puntos_ganados);
+            },
+            onError: err =>
+            {
+                Debug.LogError("[PAC] Error en RealizarAccion " + tipo + ": " + err);
+            }
+        );
+>>>>>>> e0c651cabc38e6ede1a7f82693974f0d78ae4d2e
     }
 
     private void StartAction(int animState, float duration)
     {
-        if (petNeeds.IsDead) return;
+        if (petNeeds != null && petNeeds.IsDead) return;
         SetAnimState(animState);
         _animator.SetBool(ParamIsActing, true);
         _actionTimer = duration;
@@ -118,7 +145,7 @@ public class PetAnimationController : MonoBehaviour
 
     private void HandleStateChanged(PetNeeds.PetState state)
     {
-        if (_actionTimer > 0f) return;  // No interrumpir animación activa
+        if (_actionTimer > 0f) return;
 
         int anim = state switch
         {

@@ -27,12 +27,21 @@ public class TamagotchiApiManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    private void Start()
+    {
+        if (petNeeds == null)
+        {
+            petNeeds = FindObjectOfType<PetNeeds>();
+            Debug.Log("[API] petNeeds auto-resuelto: " + (petNeeds != null));
+        }
+    }
+
     // ─────────────────────────────────────────────────────────
     //  CONFIGURACIÓN
     // ─────────────────────────────────────────────────────────
 
     [Header("URL base de la API Spring Boot")]
-    [SerializeField] private string baseUrl = "http://localhost:8080/api";
+    [SerializeField] private string baseUrl = "http://localhost:8082/api";
 
     [Tooltip("ID del usuario logueado — asignar al hacer login")]
     public int IdUsuarioActual = 4;  // Provisional; reemplazar con sistema de login
@@ -52,12 +61,8 @@ public class TamagotchiApiManager : MonoBehaviour
     public void CargarMascota(int idMascotaVirtual, Action<MascotaVirtual> onSuccess = null, Action<string> onError = null)
     {
         StartCoroutine(GET<MascotaVirtual>(
-            $"{baseUrl}/mascotas/{idMascotaVirtual}",
-            data =>
-            {
-                petNeeds?.LoadFromServer(data);
-                onSuccess?.Invoke(data);
-            },
+            $"{baseUrl}/juego/mascota/{idMascotaVirtual}",
+            data => onSuccess?.Invoke(data),
             onError
         ));
     }
@@ -87,7 +92,7 @@ public class TamagotchiApiManager : MonoBehaviour
             request,
             data =>
             {
-                petNeeds.SyncFromServer(data.mascota, data.puntos_ganados);
+                petNeeds.ApplyActionResult(tipo, data.puntos_ganados);
                 onSuccess?.Invoke(data);
             },
             err =>
@@ -171,7 +176,7 @@ public class TamagotchiApiManager : MonoBehaviour
             err  =>
             {
                 // Revert: volver a cargar del servidor si falla
-                CargarMascota(petNeeds.IdVirtual);
+                CargarMascota(petNeeds.IdVirtual, data => petNeeds.SyncFromServer(data));
                 onError?.Invoke(err);
             }
         ));
