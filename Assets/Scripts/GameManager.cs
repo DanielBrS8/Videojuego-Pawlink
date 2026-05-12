@@ -16,6 +16,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Button btnAlimentar;
     [SerializeField] private Button btnJugar;
     [SerializeField] private Button btnBanar;
+    [SerializeField] private Button btnDormir;
     [SerializeField] private Button btnTienda;
     [SerializeField] private Button btnLogros;
 
@@ -38,6 +39,7 @@ public class GameManager : MonoBehaviour
         btnAlimentar.onClick.AddListener(petAnimController.PlayEatAnimation);
         btnJugar    .onClick.AddListener(petAnimController.PlayPlayAnimation);
         btnBanar    .onClick.AddListener(petAnimController.PlayBathAnimation);
+        if (btnDormir != null) btnDormir.onClick.AddListener(OnDormirClicked);
         btnTienda   .onClick.AddListener(OpenTienda);
         btnLogros   .onClick.AddListener(OpenLogros);
 
@@ -60,6 +62,13 @@ public class GameManager : MonoBehaviour
 
     private void OnXpChanged(int xp, int nivel)  => levelText.text = $"Nv. {nivel}";
     private void OnMonedasChanged(int coins)      => coinsText.text = coins.ToString();
+
+    private void OnDormirClicked()
+    {
+        if (!petNeeds.TieneMonedas(PetNeeds.COSTE_DORMIR)) return;
+        petNeeds.GastarMonedas(PetNeeds.COSTE_DORMIR);
+        petNeeds.Descansar();
+    }
 
     private void OpenTienda()  { }
     private void OpenLogros()  { }

@@ -8,5 +8,17 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
+  - enabled: 1
+    path: Assets/Scenes/MinijuegosMenuScene.unity
+    guid: b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6
+  - enabled: 1
+    path: Assets/Scenes/MinijuegosPescaScene.unity
+    guid: 3aa3cd4d2de54db8bab7bfade6fa3111
+  - enabled: 1
+    path: Assets/Scenes/MinijuegosEsquivaScene.unity
+    guid: 65d25f062a2a4d08a23cd7b2fdf4235a
+  - enabled: 1
+    path: Assets/Scenes/MinijuegosMemoryScene.unity
+    guid: 16ec98fd6d9a4d599a83fa90ae838524
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

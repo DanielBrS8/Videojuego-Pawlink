@@ -72,18 +72,36 @@ public class PetAnimationController : MonoBehaviour
 
     public void PlayEatAnimation()
     {
+        if (!petNeeds.TieneMonedas(PetNeeds.COSTE_ALIMENTAR))
+        {
+            Debug.Log("Sin monedas");
+            return;
+        }
+        petNeeds.GastarMonedas(PetNeeds.COSTE_ALIMENTAR);
         StartAction(ANIM_EAT, eatDuration);
         TamagotchiApiManager.Instance.RealizarAccion("alimentar");
     }
 
     public void PlayPlayAnimation()
     {
+        if (!petNeeds.TieneMonedas(PetNeeds.COSTE_JUGAR))
+        {
+            Debug.Log("Sin monedas");
+            return;
+        }
+        petNeeds.GastarMonedas(PetNeeds.COSTE_JUGAR);
         StartAction(ANIM_PLAY, playDuration);
         TamagotchiApiManager.Instance.RealizarAccion("jugar");
     }
 
     public void PlayBathAnimation()
     {
+        if (!petNeeds.TieneMonedas(PetNeeds.COSTE_BANAR))
+        {
+            Debug.Log("Sin monedas");
+            return;
+        }
+        petNeeds.GastarMonedas(PetNeeds.COSTE_BANAR);
         StartAction(ANIM_SLEEP, bathDuration);  // reutiliza anim o crea "Bath"
         TamagotchiApiManager.Instance.RealizarAccion("bañar");
     }

@@ -19,6 +19,15 @@ public class PetNeeds : MonoBehaviour
     public enum PetState { Normal, Hungry, Sad, Tired, Dirty, Critical, Dead }
 
     // ─────────────────────────────────────────────────────────
+    //  COSTES DE ACCIONES (en monedas)
+    // ─────────────────────────────────────────────────────────
+
+    public const int COSTE_ALIMENTAR = 50;
+    public const int COSTE_JUGAR     = 30;
+    public const int COSTE_BANAR     = 40;
+    public const int COSTE_DORMIR    = 20;
+
+    // ─────────────────────────────────────────────────────────
     //  INSPECTOR
     // ─────────────────────────────────────────────────────────
 
@@ -98,7 +107,7 @@ public class PetNeeds : MonoBehaviour
     //  CARGA / SYNC CON SERVIDOR
     // ─────────────────────────────────────────────────────────
 
-    public void LoadFromServer(MascotaVirtual data, int monedasIniciales = 0)
+    public void LoadFromServer(MascotaVirtual data, int monedasIniciales = 200)
     {
         ApplyData(data);
         Monedas = monedasIniciales;
@@ -234,5 +243,22 @@ public class PetNeeds : MonoBehaviour
     {
         Monedas = Mathf.Max(0, Monedas - cantidad);
         OnMonedasChanged?.Invoke(Monedas);
+    }
+
+    public bool TieneMonedas(int cantidad) => Monedas >= cantidad;
+
+    /// <summary>Recompensa de minijuego: añade monedas y dispara evento.</summary>
+    public void RecompensaMinijuego(int cantidad)
+    {
+        if (cantidad <= 0) return;
+        Monedas += cantidad;
+        OnMonedasChanged?.Invoke(Monedas);
+    }
+
+    /// <summary>Acción de dormir: restaura energía localmente (UI optimista).</summary>
+    public void Descansar()
+    {
+        SetEnergia(Energia + 40f);
+        EvaluateState();
     }
 }

@@ -62,6 +62,7 @@ public class NeedsBarUI : MonoBehaviour
             case StatType.Higiene:   petNeeds.OnHigieneChanged   -= SetTarget; break;
         }
     }
+    
 
     private void Update()
     {
